@@ -1,0 +1,13 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5p [%d{ISO8601,UTC}] [%X{requestid}] %c: %m%n%rootException</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="twit" level="TRACE"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
