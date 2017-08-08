@@ -7,26 +7,21 @@ import org.springframework.web.reactive.function.server.router
 
 
 @Configuration
-class ApiRoutes(val userHandler: UserHandler, val postHandler: PostHandler) {
+class ApiRoutes(val userHandler: UserHandler) {
 
     @Bean
     fun apiRouter() = router {
         (accept(APPLICATION_JSON) and "/api").nest {
-            "/users".nest {
-                GET("/", userHandler::findAll)
-                "/{name}".nest {
-                    GET("/", userHandler::findOne)
-                    PUT("/", userHandler::create)
-                    GET("/posts", postHandler::findAll)
-                    POST("/posts", postHandler::create)
-                    GET("/timeline", postHandler::timeline)
-                    /*
-                    "/followed".nest {
-                        PUT("/{other}", followedHandler::add)
-                        DELETE("/{other}", followedHandler::delete)
-                    }
-                    */
-                }
+            GET("/users", userHandler::users)
+            GET("/users/{name}", userHandler::user)
+            PUT("/users/{name}", userHandler::addUser)
+            GET("/users/{name}/wall", userHandler::wall)
+            GET("/users/{name}/timeline", userHandler::timeline)
+            POST("/users/{name}/posts", userHandler::addPost)
+            "/users/{name}/followed".nest {
+                PUT("/{other}", userHandler::follow)
+                POST("/{other}", userHandler::follow)
+                DELETE("/{other}", userHandler::unfollow)
             }
         }
     }

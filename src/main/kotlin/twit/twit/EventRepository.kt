@@ -1,5 +1,6 @@
 package twit.twit
 
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.toFlux
@@ -17,7 +18,8 @@ class EventRepository() {
         events.add(event)
     }
 
-    fun findByAggregateId(id: AggregateId): Flux<Event> = events.toFlux().filter { it.aggregateId == id }
+    fun findByAggregateId(aggregateId: AggregateId): Flux<Event> = events.toFlux()
+            .filter { event -> event.aggregateId == aggregateId }
     fun findByAggregateType(type: AggregateType): Flux<Event> = events.toFlux().filter { it.aggregateId.type == type }
 }
 
@@ -37,9 +39,12 @@ interface Event {
     val timestamp: LocalDateTime
 }
 
-open class UserEvent(val id: UserId) : Event {
+abstract class UserEvent(val id: UserId) : Event {
     override val aggregateId = AggregateId(AggregateType.USER, id)
     override val timestamp = LocalDateTime.now()!!
+    override fun toString(): String {
+        return ToStringBuilder.reflectionToString(this)
+    }
 
 }
 
@@ -51,11 +56,18 @@ open class PostEvent(val id: PostId) : Event {
 
 class UserCreatedEvent(id: UserId) : UserEvent(id)
 
+class FollowerAddedEvent(id: UserId, val followerId: UserId) : UserEvent(id)
+class FollowerRemovedEvent(id: UserId, val followerId: UserId) : UserEvent(id)
+
+class FollowingStartedEvent(id: UserId, val followedId: UserId) : UserEvent(id)
+class FollowingEndedEvent(id: UserId, val followedId: UserId) : UserEvent(id)
+
 class PostSentEvent(id: UserId, val message: String): UserEvent(id)
-class PostReceivedEvent(id: UserId, val author: String, val message: String): UserEvent(id)
+class PostReceivedEvent(id: UserId, val author: UserId, val message: String): UserEvent(id)
 
 class PostCreatedEvent(id: PostId, val publisher: UserId, val text: String): PostEvent(id)
 
 enum class AggregateType { USER, POST }
 data class AggregateId(val type: AggregateType, val id: Any)
+
 

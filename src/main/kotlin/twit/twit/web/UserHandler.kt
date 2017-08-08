@@ -1,50 +1,47 @@
 package twit.twit.web
 
+import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType.APPLICATION_JSON_UTF8
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters.fromObject
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
+import org.springframework.web.reactive.function.server.body
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import twit.twit.AggregateId
 import twit.twit.AggregateType
 import twit.twit.EventRepository
+import twit.twit.Post
+import twit.twit.PostId
+import twit.twit.TwitService
 import twit.twit.UserCreatedEvent
 import twit.twit.UserId
+import twit.twit.on
 import java.time.LocalDateTime
 
 fun ServerResponse.BodyBuilder.json() = contentType(APPLICATION_JSON_UTF8)
 
 @Component
-open class UserHandler(private val eventRepository: EventRepository) {
-    fun findAll(req: ServerRequest) = ServerResponse.ok().json().body(fromObject("find all"))
-    fun findOne(req: ServerRequest) = req.pathVariable("name").toMono()
-            .flatMap { name -> findOne(name) }
+open class UserHandler(private val eventRepository: EventRepository, private val service: TwitService) {
+    data class PostOutput(val author: String, val text: String, val timestamp: String)
+
+    data class PostInput(val text: String)
+
+    fun users(req: ServerRequest) = ServerResponse.ok().json().body(fromObject("find all"))
+
+    fun user(req: ServerRequest) = req.pathVariable("name").toMono()
+            .map { name -> UserId(name) }
+            .flatMap { id -> userProjection(id) }
             .flatMap { projection -> projection.toOutput() }
             .flatMap { output -> ServerResponse.ok().json().body(fromObject(output)) }
             .switchIfEmpty(ServerResponse.notFound().build())
 
-    //    ServerResponse.ok().body(fromObject("find: ${req.pathVariable("name")}"))
-    fun create(req: ServerRequest) = ServerResponse.ok().body(fromObject("created"))
+    fun addUser(req: ServerRequest) = ServerResponse.ok().body(fromObject("created"))
 
-    /*
-    fun findOne(req: ServerRequest) = ServerResponse.ok().json().body(repository.findOne(req.pathVariable("login")))
-
-    fun findAll(req: ServerRequest) = ServerResponse.ok().json().body(repository.findAll())
-
-    fun findStaff(req: ServerRequest) = ServerResponse.ok().json().body(repository.findByRole(Role.STAFF))
-
-    fun findOneStaff(req: ServerRequest) = ServerResponse.ok().json().body(repository.findOneByRole(req.pathVariable("login"), Role.STAFF))
-
-    fun create(req: ServerRequest) = repository.save(req.bodyToMono<User>()).flatMap {
-        ServerResponse.created(URI.create("/api/user/${it.login}")).json().body(it.toMono())
-    }
-    */
-
-    private fun findOne(name: String) = eventRepository
-            .findByAggregateId(AggregateId(AggregateType.USER, name))
-            .reduceWith({ UserProjection() }, { p, e -> on(p, e) })
+    private fun userProjection(userId: UserId) = eventRepository
+            .findByAggregateId(AggregateId(AggregateType.USER, userId))
+            .reduce(UserProjection(), { p, e -> on(p, e) })
 
     data class UserOutput(val name: String, val created: LocalDateTime)
 
@@ -61,5 +58,43 @@ open class UserHandler(private val eventRepository: EventRepository) {
             false -> Mono.empty()
         }
     }
+
+    fun Post.toOutput(): PostOutput = PostOutput(userId.name, text, timestamp.toString())
+
+    companion object {
+        private val log = LoggerFactory.getLogger(UserHandler::class.java)
+    }
+
+    fun wall(req: ServerRequest) = ServerResponse.ok().json().body(
+            service.wall(UserId(req.pathVariable("name")))
+                    .map { post -> post.toOutput() })
+
+    fun addPost(req: ServerRequest) = req.bodyToMono(PostInput::class.java)
+            .doOnNext { post -> log.debug("Adding post: {}", post) }
+            .flatMap { input -> createPost(req.pathVariable("name"), input) }
+            .flatMap { id -> ServerResponse.created(req.uri().resolve(id.id.toString())).build() }
+
+    fun follow(req: ServerRequest): Mono<ServerResponse>  {
+        val user = req.pathVariable("name")
+        val other = req.pathVariable("other")
+        log.debug("Set follow relationship from: $user to: $other.")
+        service.follow(UserId(user), UserId(other))
+        return ServerResponse.ok().json().build()
+    }
+    
+    fun unfollow(req: ServerRequest): Mono<ServerResponse> {
+        val user = req.pathVariable("name")
+        val other = req.pathVariable("other")
+        service.unfollow(UserId(user), UserId(other))
+        return ServerResponse.ok().json().build()
+    }
+
+    private fun createPost(name: String, input: PostInput): Mono<PostId> =
+            service.post(UserId(name), input.text)
+
+    fun timeline(req: ServerRequest) = ServerResponse.ok().json().body(
+            service.timeline(UserId(req.pathVariable("name")))
+                    .map { post -> post.toOutput() })
+
 }
 

@@ -45,6 +45,17 @@
             <groupId>org.funktionale</groupId>
             <artifactId>funktionale-all</artifactId>
             <version>1.1</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>kotlin-stdlib</artifactId>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
         </dependency>
 
         <!-- TESTS -->
@@ -87,14 +98,14 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <userId>compile</userId>
+                        <id>compile</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <userId>test-compile</userId>
+                        <id>test-compile</id>
                         <phase>test-compile</phase>
                         <goals>
                             <goal>test-compile</goal>
@@ -114,7 +125,7 @@
 
     <repositories>
         <repository>
-            <userId>central</userId>
+            <id>central</id>
             <name>Maven Repository</name>
             <layout>default</layout>
             <url>http://repo1.maven.org/maven2</url>
@@ -123,7 +134,7 @@
             </snapshots>
         </repository>
         <repository>
-            <userId>spring-snapshots</userId>
+            <id>spring-snapshots</id>
             <name>Spring Snapshots</name>
             <url>https://repo.spring.io/snapshot</url>
             <snapshots>
@@ -131,7 +142,7 @@
             </snapshots>
         </repository>
         <repository>
-            <userId>spring-milestones</userId>
+            <id>spring-milestones</id>
             <name>Spring Milestones</name>
             <url>https://repo.spring.io/milestone</url>
             <snapshots>
@@ -139,7 +150,7 @@
             </snapshots>
         </repository>
         <repository>
-            <userId>central</userId>
+            <id>jcenter</id>
             <name>bintray</name>
             <url>http://jcenter.bintray.com</url>
         </repository>
@@ -147,7 +158,7 @@
 
     <pluginRepositories>
         <pluginRepository>
-            <userId>central</userId>
+            <id>central</id>
             <name>Maven Plugin Repository</name>
             <url>http://repo1.maven.org/maven2</url>
             <layout>default</layout>
@@ -159,7 +170,7 @@
             </releases>
         </pluginRepository>
         <pluginRepository>
-            <userId>spring-snapshots</userId>
+            <id>spring-snapshots</id>
             <name>Spring Snapshots</name>
             <url>https://repo.spring.io/snapshot</url>
             <snapshots>
@@ -167,7 +178,7 @@
             </snapshots>
         </pluginRepository>
         <pluginRepository>
-            <userId>spring-milestones</userId>
+            <id>spring-milestones</id>
             <name>Spring Milestones</name>
             <url>https://repo.spring.io/milestone</url>
             <snapshots>
