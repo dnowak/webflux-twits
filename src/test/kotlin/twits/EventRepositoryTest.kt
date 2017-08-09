@@ -1,4 +1,4 @@
-package twit.twit
+package twits
 
 import org.junit.Assert
 import org.junit.Test

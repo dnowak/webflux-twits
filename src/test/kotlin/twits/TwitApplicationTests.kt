@@ -1,4 +1,4 @@
-package twit.twit
+package twits
 
 import org.junit.Test
 import org.junit.runner.RunWith

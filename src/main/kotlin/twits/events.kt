@@ -1,6 +1,7 @@
-package twit.twit
+package twits
 
 import org.apache.commons.lang3.builder.ToStringBuilder
+import org.funktionale.tries.Try
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.toFlux
@@ -34,6 +35,9 @@ class EventBus(val listeners: Collection<EventListener>) {
     }
 }
 
+enum class AggregateType { USER, POST }
+data class AggregateId(val type: AggregateType, val id: Any)
+
 interface Event {
     val aggregateId: AggregateId
     val timestamp: LocalDateTime
@@ -45,13 +49,6 @@ abstract class UserEvent(val id: UserId) : Event {
     override fun toString(): String {
         return ToStringBuilder.reflectionToString(this)
     }
-
-}
-
-open class PostEvent(val id: PostId) : Event {
-    override val aggregateId = AggregateId(AggregateType.POST, id)
-    override val timestamp = LocalDateTime.now()!!
-
 }
 
 class UserCreatedEvent(id: UserId) : UserEvent(id)
@@ -65,9 +62,15 @@ class FollowingEndedEvent(id: UserId, val followedId: UserId) : UserEvent(id)
 class PostSentEvent(id: UserId, val message: String): UserEvent(id)
 class PostReceivedEvent(id: UserId, val author: UserId, val message: String): UserEvent(id)
 
+open class PostEvent(val id: PostId) : Event {
+
+    override val aggregateId = AggregateId(AggregateType.POST, id)
+    override val timestamp = LocalDateTime.now()!!
+}
+
 class PostCreatedEvent(id: PostId, val publisher: UserId, val text: String): PostEvent(id)
 
-enum class AggregateType { USER, POST }
-data class AggregateId(val type: AggregateType, val id: Any)
-
-
+fun <E : Any, T : Any> on(target: T, event: E): T {
+    Try({ target.javaClass.getMethod("on", event.javaClass) }).map { m -> m.invoke(target, event) }
+    return target
+}

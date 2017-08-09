@@ -1,4 +1,4 @@
-package twit.twit
+package twits
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -52,8 +52,10 @@ class WebTest: AbstractIntegrationTest() {
     @Test
     fun `post is published on follwers timelines`() {
         //when
-        client.put().uri("/api/users/a/followed/b").accept(APPLICATION_JSON).exchange().block()
-        client.put().uri("/api/users/c/followed/b").accept(APPLICATION_JSON).exchange().block()
+//        client().put().uri("/api/users/a/followed/b").accept(APPLICATION_JSON).exchange().block()
+//        client().put().uri("/api/users/c/followed/b").accept(APPLICATION_JSON).exchange().block()
+        testClient().put().uri("/api/users/a/followed/b").accept(APPLICATION_JSON).exchange().expectStatus().isOk
+        testClient().put().uri("/api/users/c/followed/b").accept(APPLICATION_JSON).exchange().expectStatus().isOk
         testClient.post().uri("/api/users/b/posts")
                 .contentType(APPLICATION_JSON)
                 .body(BodyInserters.fromObject("""{"text": "Post from B"}"""))

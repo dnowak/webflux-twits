@@ -1,4 +1,4 @@
-package twit.twit.web
+package twits.web
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

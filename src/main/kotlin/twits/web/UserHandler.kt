@@ -1,4 +1,4 @@
-package twit.twit.web
+package twits.web
 
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType.APPLICATION_JSON_UTF8
@@ -9,15 +9,15 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.body
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
-import twit.twit.AggregateId
-import twit.twit.AggregateType
-import twit.twit.EventRepository
-import twit.twit.Post
-import twit.twit.PostId
-import twit.twit.TwitService
-import twit.twit.UserCreatedEvent
-import twit.twit.UserId
-import twit.twit.on
+import twits.AggregateId
+import twits.AggregateType
+import twits.EventRepository
+import twits.Post
+import twits.PostId
+import twits.TwitService
+import twits.UserCreatedEvent
+import twits.UserId
+import twits.on
 import java.time.LocalDateTime
 
 fun ServerResponse.BodyBuilder.json() = contentType(APPLICATION_JSON_UTF8)
@@ -26,28 +26,30 @@ fun ServerResponse.BodyBuilder.json() = contentType(APPLICATION_JSON_UTF8)
 open class UserHandler(private val eventRepository: EventRepository, private val service: TwitService) {
     data class PostOutput(val author: String, val text: String, val timestamp: String)
 
+    fun Post.toOutput(): PostOutput = PostOutput(userId.name, text, timestamp.toString())
+
     data class PostInput(val text: String)
 
-    fun users(req: ServerRequest) = ServerResponse.ok().json().body(fromObject("find all"))
+    fun users(req: ServerRequest): Mono<ServerResponse> = ServerResponse.ok().json().body(fromObject("find all"))
 
-    fun user(req: ServerRequest) = req.pathVariable("name").toMono()
+    fun user(req: ServerRequest): Mono<ServerResponse> = req.pathVariable("name").toMono()
             .map { name -> UserId(name) }
             .flatMap { id -> userProjection(id) }
             .flatMap { projection -> projection.toOutput() }
             .flatMap { output -> ServerResponse.ok().json().body(fromObject(output)) }
             .switchIfEmpty(ServerResponse.notFound().build())
 
-    fun addUser(req: ServerRequest) = ServerResponse.ok().body(fromObject("created"))
+    fun addUser(req: ServerRequest): Mono<ServerResponse> = ServerResponse.ok().body(fromObject("created"))
 
     private fun userProjection(userId: UserId) = eventRepository
             .findByAggregateId(AggregateId(AggregateType.USER, userId))
             .reduce(UserProjection(), { p, e -> on(p, e) })
 
     data class UserOutput(val name: String, val created: LocalDateTime)
-
     class UserProjection() {
         var id: UserId? = null
         var created: LocalDateTime? = null
+
         fun on(event: UserCreatedEvent) {
             id = event.id
             created = event.timestamp
@@ -58,8 +60,6 @@ open class UserHandler(private val eventRepository: EventRepository, private val
             false -> Mono.empty()
         }
     }
-
-    fun Post.toOutput(): PostOutput = PostOutput(userId.name, text, timestamp.toString())
 
     companion object {
         private val log = LoggerFactory.getLogger(UserHandler::class.java)
