@@ -131,7 +131,7 @@ class User(private val eventBus: EventBus) {
     }
 
     fun removeFollower(followerId: UserId) {
-        if (!followersList.contains(followerId)) {
+        if (followersList.contains(followerId)) {
             apply(FollowerRemovedEvent(id, followerId))
         }
     }

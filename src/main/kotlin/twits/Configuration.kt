@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class Configuration {
     @Bean
-    fun eventRepository() = EventRepository()
+    fun eventRepository() = MemoryEventRepository()
 
     @Bean
     fun repositoryListener(eventRepository: EventRepository): EventListener = object : EventListener {

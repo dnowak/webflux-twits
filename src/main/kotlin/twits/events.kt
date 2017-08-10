@@ -6,22 +6,34 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.toFlux
 import java.time.LocalDateTime
-import java.util.LinkedList
+import java.util.concurrent.CopyOnWriteArrayList
 
-class EventRepository() {
+interface EventRepository {
+    fun add(event: Event)
+    fun findByAggregateId(aggregateId: AggregateId): Flux<Event>
+    fun findByAggregateType(type: AggregateType): Flux<Event>
+}
+
+class MemoryEventRepository() : EventRepository {
     companion object {
-        private val log = LoggerFactory.getLogger(EventRepository::class.java)
+        private val log = LoggerFactory.getLogger(MemoryEventRepository::class.java)
     }
-    private val events = LinkedList<Event>()
+    private val events = CopyOnWriteArrayList<Event>()
 
-    fun add(event: Event) {
+    override fun add(event: Event) {
         log.debug("add: {}", event)
         events.add(event)
     }
 
-    fun findByAggregateId(aggregateId: AggregateId): Flux<Event> = events.toFlux()
+    override fun findByAggregateId(aggregateId: AggregateId): Flux<Event> = events.toFlux()
             .filter { event -> event.aggregateId == aggregateId }
-    fun findByAggregateType(type: AggregateType): Flux<Event> = events.toFlux().filter { it.aggregateId.type == type }
+    override fun findByAggregateType(type: AggregateType): Flux<Event> = events.toFlux().filter { it.aggregateId.type == type }
+
+    fun clear() {
+        events.clear()
+    }
+
+
 }
 
 
@@ -68,7 +80,7 @@ open class PostEvent(val id: PostId) : Event {
     override val timestamp = LocalDateTime.now()!!
 }
 
-class PostCreatedEvent(id: PostId, val publisher: UserId, val text: String): PostEvent(id)
+class PostCreatedEvent(id: PostId, val author: UserId, val text: String): PostEvent(id)
 
 fun <E : Any, T : Any> on(target: T, event: E): T {
     Try({ target.javaClass.getMethod("on", event.javaClass) }).map { m -> m.invoke(target, event) }

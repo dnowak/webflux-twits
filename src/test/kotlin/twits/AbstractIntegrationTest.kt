@@ -32,5 +32,4 @@ abstract class AbstractIntegrationTest {
     internal fun testClient() = WebTestClient.bindToServer().baseUrl("http://localhost:$port").build()
 
     protected fun client() = WebClient.create("http://localhost:$port")
-
 }

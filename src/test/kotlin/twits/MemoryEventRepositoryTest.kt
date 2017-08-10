@@ -3,11 +3,11 @@ package twits
 import org.junit.Assert
 import org.junit.Test
 
-class EventRepositoryTest {
+class MemoryEventRepositoryTest {
     @Test
     fun `finds events by UserId`() {
         //given
-        val repository = EventRepository()
+        val repository = MemoryEventRepository()
         repository.add(UserCreatedEvent(UserId("ala")))
         repository.add(UserCreatedEvent(UserId("ola")))
         repository.add(FollowerAddedEvent(UserId("ala"), UserId("ola")))
