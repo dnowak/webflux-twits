@@ -29,7 +29,7 @@ class TwitService(private val userRepository: UserRepository,
         user.followers.toFlux()
                 .flatMap(userRepository::user)
                 .subscribe { user -> user.receive(post) }
-        return postId;
+        return postId
     }
 
     fun wall(userId: UserId): Flux<Post> = userEvents(userId)
@@ -52,6 +52,7 @@ class TwitService(private val userRepository: UserRepository,
 
     private fun userEvents(userId: UserId) = eventRepository.findByAggregateId(AggregateId(AggregateType.USER, userId))
 
+    //TODO replace with function
     class WallProjection {
         val posts = LinkedList<Post>()
 
@@ -63,6 +64,7 @@ class TwitService(private val userRepository: UserRepository,
         fun posts(): Flux<Post> = posts.toFlux()
     }
 
+    //TODO replace with function
     class TimelineProjection {
         val posts = LinkedList<Post>()
 

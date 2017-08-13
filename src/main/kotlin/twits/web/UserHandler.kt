@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters.fromObject
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
+import org.springframework.web.reactive.function.server.ServerResponse.badRequest
 import org.springframework.web.reactive.function.server.ServerResponse.created
 import org.springframework.web.reactive.function.server.ServerResponse.notFound
 import org.springframework.web.reactive.function.server.ServerResponse.ok
@@ -14,16 +15,22 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import twits.AggregateId
 import twits.AggregateType
+import twits.Event
 import twits.EventRepository
+import twits.FollowerAddedEvent
+import twits.FollowerRemovedEvent
+import twits.FollowingEndedEvent
+import twits.FollowingStartedEvent
 import twits.Post
 import twits.PostId
+import twits.PostSentEvent
 import twits.TwitService
 import twits.UserCreatedEvent
+import twits.UserEvent
 import twits.UserId
-import twits.on
 import java.time.LocalDateTime
 
-fun ServerResponse.BodyBuilder.json() = contentType(APPLICATION_JSON_UTF8)
+fun ServerResponse.BodyBuilder.json(): ServerResponse.BodyBuilder = contentType(APPLICATION_JSON_UTF8)
 
 @Component
 open class UserHandler(private val eventRepository: EventRepository, private val service: TwitService) {
@@ -33,36 +40,44 @@ open class UserHandler(private val eventRepository: EventRepository, private val
 
     data class PostInput(val text: String)
 
-    fun users(req: ServerRequest): Mono<ServerResponse> = ok().json().body(fromObject("find all"))
+    fun users(req: ServerRequest): Mono<ServerResponse> = eventRepository.findByAggregateType(AggregateType.USER)
+            .cast(UserEvent::class.java)
+            .groupBy { it.aggregateId.id }
+            .map { it.reduce(Mono.empty<UserOutput>(), {p, e -> updateUserOutput(p, e)}).flatMap { it } }
+            .flatMap { it }
+            .sort { (name1), (name2) -> name1.compareTo(name2) }
+            .collectList()
+            .flatMap { it -> ok().json().body(fromObject(it)) }
 
     fun user(req: ServerRequest): Mono<ServerResponse> = req.pathVariable("name").toMono()
             .map { name -> UserId(name) }
             .flatMap { id -> userProjection(id) }
-            .flatMap { projection -> projection.toOutput() }
             .flatMap { output -> ok().json().body(fromObject(output)) }
             .switchIfEmpty(notFound().build())
 
     fun addUser(req: ServerRequest): Mono<ServerResponse> = ok().body(fromObject("created"))
 
-    private fun userProjection(userId: UserId) = eventRepository
-            .findByAggregateId(AggregateId(AggregateType.USER, userId))
-            .reduce(UserProjection(), { p, e -> on(p, e) })
-
-    data class UserOutput(val name: String, val created: LocalDateTime)
-    class UserProjection() {
-        var id: UserId? = null
-        var created: LocalDateTime? = null
-
-        fun on(event: UserCreatedEvent) {
-            id = event.id
-            created = event.timestamp
-        }
-
-        fun toOutput(): Mono<UserOutput> = when (id != null) {
-            true -> Mono.just(UserOutput(id!!.name, created!!))
-            false -> Mono.empty()
-        }
+    fun updateUserOutput(projection: Mono<UserOutput>, event: Event): Mono<UserOutput> = when (event) {
+        is UserCreatedEvent -> projection.switchIfEmpty(UserOutput(event.id.name, event.timestamp).toMono())
+        is FollowerAddedEvent -> projection.map { it.copy(followerCount = it.followerCount + 1) }
+        is FollowerRemovedEvent -> projection.map { it.copy(followerCount = it.followerCount - 1) }
+        is FollowingStartedEvent -> projection.map { it.copy(followedCount = it.followedCount + 1) }
+        is FollowingEndedEvent -> projection.map { it.copy(followedCount = it.followedCount - 1) }
+        is PostSentEvent -> projection.map { it.copy(postCount = it.postCount + 1) }
+        else -> projection
     }
+
+    private fun userProjection(userId: UserId): Mono<UserOutput> {
+        return eventRepository.findByAggregateId(AggregateId(AggregateType.USER, userId))
+                .reduce(Mono.empty<UserOutput>(), { p, e -> updateUserOutput(p, e) })
+                .flatMap { it }
+    }
+
+    data class UserOutput(val name: String,
+                          val created: LocalDateTime,
+                          val followedCount: Int = 0,
+                          val followerCount: Int = 0,
+                          val postCount: Int = 0)
 
     companion object {
         private val log = LoggerFactory.getLogger(UserHandler::class.java)
@@ -72,19 +87,20 @@ open class UserHandler(private val eventRepository: EventRepository, private val
             service.wall(UserId(req.pathVariable("name")))
                     .map { post -> post.toOutput() })
 
-    fun addPost(req: ServerRequest) = req.bodyToMono(PostInput::class.java)
+    fun addPost(req: ServerRequest): Mono<ServerResponse> = req.bodyToMono(PostInput::class.java)
             .doOnNext { post -> log.debug("Adding post: {}", post) }
             .flatMap { input -> createPost(req.pathVariable("name"), input) }
             .flatMap { id -> created(req.uri().resolve(id.id.toString())).build() }
+            .switchIfEmpty(badRequest().body(fromObject("""{ "error": "Text too long"}""")))
 
-    fun follow(req: ServerRequest): Mono<ServerResponse>  {
+    fun follow(req: ServerRequest): Mono<ServerResponse> {
         val user = req.pathVariable("name")
         val other = req.pathVariable("other")
         log.debug("Set follow relationship from: $user to: $other.")
         service.follow(UserId(user), UserId(other))
         return ok().json().build()
     }
-    
+
     fun unfollow(req: ServerRequest): Mono<ServerResponse> {
         val user = req.pathVariable("name")
         val other = req.pathVariable("other")
@@ -93,7 +109,9 @@ open class UserHandler(private val eventRepository: EventRepository, private val
     }
 
     private fun createPost(name: String, input: PostInput): Mono<PostId> =
-            service.post(UserId(name), input.text)
+            input.toMono()
+                    .filter { it.text.length <= 140 }
+                    .flatMap { service.post(UserId(name), it.text) }
 
     fun timeline(req: ServerRequest) = ok().json().body(
             service.timeline(UserId(req.pathVariable("name")))

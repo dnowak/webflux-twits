@@ -14,7 +14,7 @@ interface EventRepository {
     fun findByAggregateType(type: AggregateType): Flux<Event>
 }
 
-class MemoryEventRepository() : EventRepository {
+class MemoryEventRepository : EventRepository {
     companion object {
         private val log = LoggerFactory.getLogger(MemoryEventRepository::class.java)
     }
@@ -32,10 +32,7 @@ class MemoryEventRepository() : EventRepository {
     fun clear() {
         events.clear()
     }
-
-
 }
-
 
 interface EventListener {
     fun onEvent(event: Event)

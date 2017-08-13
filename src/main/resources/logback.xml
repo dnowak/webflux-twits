@@ -5,7 +5,7 @@
         </encoder>
     </appender>
 
-    <logger name="twit" level="TRACE"/>
+    <logger name="twits" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

@@ -83,7 +83,7 @@ class User(private val eventBus: EventBus) {
     }
 
     fun post(post: Post) {
-        apply(PostSentEvent(userId!!, post.text));
+        apply(PostSentEvent(userId!!, post.text))
     }
 
     fun receive(post: Post) {
