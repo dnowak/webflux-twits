@@ -1,12 +1,13 @@
 package twits
 
+import io.vavr.collection.List
+import io.vavr.collection.List.empty
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toFlux
 import java.time.LocalDateTime
-import java.util.LinkedList
 
 @Component
 class TwitService(private val userRepository: UserRepository,
@@ -32,9 +33,15 @@ class TwitService(private val userRepository: UserRepository,
         return postId
     }
 
-    fun wall(userId: UserId): Flux<Post> = userEvents(userId)
-            .reduce(WallProjection(), { projection, event -> on(projection, event) })
-            .flatMapMany { it.posts() }
+    fun wall(userId: UserId): Flux<Post> {
+        fun updateProjection(posts: List<Post>, event: UserEvent) = when(event) {
+            is PostSentEvent -> posts.prepend(Post(event.id, event.message, event.timestamp))
+            else -> posts
+        }
+        return userEvents(userId)
+                .reduce(empty<Post>(), ::updateProjection)
+                .flatMapMany { it.toFlux() }
+    }
 
     fun follow(followerId: UserId, followedId: UserId) {
         userRepository.user(followerId).subscribe { user -> user.follow(followedId) }
@@ -46,34 +53,19 @@ class TwitService(private val userRepository: UserRepository,
         userRepository.user(followedId).subscribe { user -> user.removeFollower(followerId) }
     }
 
-    fun timeline(userId: UserId): Flux<Post> = userEvents(userId)
-            .reduce(TimelineProjection(), { projection, event -> on(projection, event) })
-            .flatMapMany { it.posts() }
-
-    private fun userEvents(userId: UserId) = eventRepository.findByAggregateId(AggregateId(AggregateType.USER, userId))
-
-    //TODO replace with function
-    class WallProjection {
-        val posts = LinkedList<Post>()
-
-        fun on(event: PostSentEvent) {
-            posts.add(0, Post(event.id, event.message, event.timestamp))
-
+    fun timeline(userId: UserId): Flux<Post> {
+        fun updateProjection(posts: List<Post>, event: UserEvent) = when(event) {
+            is PostReceivedEvent -> posts.prepend(Post(event.author, event.message, event.timestamp))
+            else -> posts
         }
-
-        fun posts(): Flux<Post> = posts.toFlux()
+        return userEvents(userId)
+                .reduce(empty<Post>(), ::updateProjection)
+                .flatMapMany { it.toFlux() }
     }
 
-    //TODO replace with function
-    class TimelineProjection {
-        val posts = LinkedList<Post>()
-
-        fun on(event: PostReceivedEvent) {
-            posts.add(0, Post(event.author, event.message, event.timestamp))
-        }
-
-        fun posts(): Flux<Post> = posts.toFlux()
-    }
+    private fun userEvents(userId: UserId): Flux<UserEvent> = eventRepository
+            .findByAggregateId(AggregateId(AggregateType.USER, userId))
+            .cast(UserEvent::class.java)
 }
 
 
