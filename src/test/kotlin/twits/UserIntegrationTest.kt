@@ -43,16 +43,16 @@ class UserIntegrationTest : AbstractIntegrationTest() {
 
         //then
         assert().user("a").timeline().containsInOrder(
-                post().from("d").withText("Post from D - 2"),
-                post().from("b").withText("Post from B - 2"),
-                post().from("d").withText("Post from D - 1"),
-                post().from("b").withText("Post from B - 1")
+                a().post().from("d").withText("Post from D - 2"),
+                a().post().from("b").withText("Post from B - 2"),
+                a().post().from("d").withText("Post from D - 1"),
+                a().post().from("b").withText("Post from B - 1")
         )
         assert().user("c").timeline().containsInOrder(
-                post().from("e").withText("Post from E - 2"),
-                post().from("b").withText("Post from B - 2"),
-                post().from("e").withText("Post from E - 1"),
-                post().from("b").withText("Post from B - 1")
+                a().post().from("e").withText("Post from E - 2"),
+                a().post().from("b").withText("Post from B - 2"),
+                a().post().from("e").withText("Post from E - 1"),
+                a().post().from("b").withText("Post from B - 1")
         )
     }
 
@@ -70,9 +70,9 @@ class UserIntegrationTest : AbstractIntegrationTest() {
 
         //then
         assert().user("a").timeline().containsInOrder(
-                post().from("b").withText("Post from B - 5"),
-                post().from("b").withText("Post from B - 2"),
-                post().from("b").withText("Post from B - 1")
+                a().post().from("b").withText("Post from B - 5"),
+                a().post().from("b").withText("Post from B - 2"),
+                a().post().from("b").withText("Post from B - 1")
         )
     }
 
@@ -86,9 +86,9 @@ class UserIntegrationTest : AbstractIntegrationTest() {
 
         //expect
         assert().user("a").wall().containsInOrder(
-                post().withText("Post Three"),
-                post().withText("Post Two"),
-                post().withText("Post One")
+                a().post().withText("Post Three"),
+                a().post().withText("Post Two"),
+                a().post().withText("Post One")
         )
     }
 
@@ -113,7 +113,7 @@ class UserIntegrationTest : AbstractIntegrationTest() {
 
         //expect
         assert().user("a").isA(
-                user().withName("a").withFollowers(1).withFollowed(2).withPosts(1)
+                an().user().withName("a").withFollowers(1).withFollowed(2).withPosts(1)
         )
     }
 
@@ -130,10 +130,10 @@ class UserIntegrationTest : AbstractIntegrationTest() {
 
         //expect
         assert().users().containsInOrder(
-                user().withName("a").withFollowers(1).withFollowed(2).withPosts(2),
-                user().withName("b").withFollowers(2).withFollowed(0).withPosts(1),
-                user().withName("c").withFollowers(1).withFollowed(0).withPosts(0),
-                user().withName("d").withFollowers(0).withFollowed(2).withPosts(0)
+                an().user().withName("a").withFollowers(1).withFollowed(2).withPosts(2),
+                an().user().withName("b").withFollowers(2).withFollowed(0).withPosts(1),
+                an().user().withName("c").withFollowers(1).withFollowed(0).withPosts(0),
+                an().user().withName("d").withFollowers(0).withFollowed(2).withPosts(0)
         )
     }
 }

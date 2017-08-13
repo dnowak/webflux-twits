@@ -28,17 +28,11 @@ import twits.TwitService
 import twits.UserCreatedEvent
 import twits.UserEvent
 import twits.UserId
-import java.time.LocalDateTime
 
 fun ServerResponse.BodyBuilder.json(): ServerResponse.BodyBuilder = contentType(APPLICATION_JSON_UTF8)
 
 @Component
 open class UserHandler(private val eventRepository: EventRepository, private val service: TwitService) {
-    data class PostOutput(val author: String, val text: String, val timestamp: String)
-
-    fun Post.toOutput(): PostOutput = PostOutput(userId.name, text, timestamp.toString())
-
-    data class PostInput(val text: String)
 
     fun users(req: ServerRequest): Mono<ServerResponse> = eventRepository.findByAggregateType(AggregateType.USER)
             .cast(UserEvent::class.java)
@@ -72,12 +66,6 @@ open class UserHandler(private val eventRepository: EventRepository, private val
                 .reduce(Mono.empty<UserOutput>(), { p, e -> updateUserOutput(p, e) })
                 .flatMap { it }
     }
-
-    data class UserOutput(val name: String,
-                          val created: LocalDateTime,
-                          val followedCount: Int = 0,
-                          val followerCount: Int = 0,
-                          val postCount: Int = 0)
 
     companion object {
         private val log = LoggerFactory.getLogger(UserHandler::class.java)

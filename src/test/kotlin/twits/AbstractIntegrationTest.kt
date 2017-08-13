@@ -55,6 +55,7 @@ abstract class AbstractIntegrationTest {
     class AssertBuilder(val testClient: WebTestClient) {
         fun user(name: String) = UserAssert(testClient, name)
         fun users() = UsersAssert(testClient)
+        fun posts() = PostsAssert(testClient)
     }
 
     class UserAssert(val testClient: WebTestClient, val name: String) {
@@ -106,7 +107,6 @@ abstract class AbstractIntegrationTest {
                     .responseBody
             assertThat(posts, Matchers.contains(*matchers))
         }
-
     }
 
     class UsersAssert(val testClient: WebTestClient) {
@@ -120,7 +120,19 @@ abstract class AbstractIntegrationTest {
                     .responseBody
             assertThat(posts, Matchers.contains(*matchers))
         }
+    }
 
+    class PostsAssert(val testClient: WebTestClient) {
+        fun containsInOrder(vararg matchers: PostMatcher) {
+            val posts = testClient.get().uri("/api/posts")
+                    .accept(APPLICATION_JSON)
+                    .exchange()
+                    .expectStatus().isOk
+                    .expectBodyList(PostOutput::class.java)
+                    .returnResult()
+                    .responseBody
+            assertThat(posts, Matchers.contains(*matchers))
+        }
     }
 
     class WallAssert(val testClient: WebTestClient, val name: String) {
@@ -153,7 +165,16 @@ abstract class AbstractIntegrationTest {
         fun withText(text: String) = this.also { this.text = text }
     }
 
-    fun post() = PostMatcher()
+    fun a() = MatcherFactory()
+
+    fun an() = a()
+
+    class MatcherFactory {
+        fun post() = PostMatcher()
+        fun user() = UserMatcher()
+
+    }
+
 
     fun user(name: String): UserActions = UserActions(testClient, name)
 
@@ -183,7 +204,6 @@ abstract class AbstractIntegrationTest {
         fun posts(text: String) = post(testClient, name, text)
     }
 
-    fun user() = UserMatcher()
 
     class UserMatcher : TypeSafeMatcher<UserOutput>(UserOutput::class.java) {
         override fun matchesSafely(user: UserOutput): Boolean {
