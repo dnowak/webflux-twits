@@ -231,7 +231,7 @@ abstract class AbstractIntegrationTest {
 }
 
 fun post(testClient: WebTestClient, name: String, text: String) {
-    testClient.post().uri("/api/users/$name/posts")
+    testClient.post().uri("/api/users/$name/wall")
             .contentType(APPLICATION_JSON)
             .body(BodyInserters.fromObject("""{"text": "$text"}"""))
             .exchange()

@@ -95,7 +95,7 @@ class UserIntegrationTest : AbstractIntegrationTest() {
     @Test
     fun `does not allow posts longer than 140 characters`() {
         val text = RandomStringUtils.randomAlphanumeric(141)
-        testClient.post().uri("/api/users/test/posts")
+        testClient.post().uri("/api/users/test/wall")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromObject("""{"text": "$text"}"""))
                 .exchange()

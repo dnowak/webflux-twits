@@ -19,7 +19,7 @@ class ApiRoutes(private val userHandler: UserHandler,
             PUT("/users/{name}", userHandler::addUser)
             GET("/users/{name}/wall", userHandler::wall)
             GET("/users/{name}/timeline", userHandler::timeline)
-            POST("/users/{name}/posts", userHandler::addPost)
+            POST("/users/{name}/wall", userHandler::addPost)
             "/users/{name}/followed".nest {
                 PUT("/{other}", userHandler::follow)
                 DELETE("/{other}", userHandler::unfollow)
