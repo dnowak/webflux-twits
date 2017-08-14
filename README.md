@@ -1,4 +1,4 @@
-#WebFlux Twits
+# WebFlux Twits
 
 Sample project that mimics Twitter functionality.
 
@@ -6,7 +6,7 @@ Based on WebFlux functional web framework from Spring.
 
 EventStore as a basic data store.
 
-##Functionality
+## Functionality
 
 * post messages up to 140 characters long
 * list posted (own) messages in reverse order (from latest)
@@ -14,14 +14,14 @@ EventStore as a basic data store.
 * follow another a user
 * stop following a user
 
-##Build it
+## Build it
 ```mvn clean package```
 
-##Run it
+## Run it
 ```mvn spring-boot:run```
 It will start the application on port 8080.
 
-##API
+## API
 
 * /api/posts - list of all published posts
 ```bash
